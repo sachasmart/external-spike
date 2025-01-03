@@ -1,3 +1,3 @@
 # External Spike
 
-Repository for external spikes.
+Repository for external spikes
