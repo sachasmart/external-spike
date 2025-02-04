@@ -1,0 +1,40 @@
+name: Check DB Migrations
+
+on:
+  pull_request:
+    paths:
+      - "db/versions/**"
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check for DB migrations
+        id: check_migrations
+        run: |
+          git fetch origin main || true
+          if git diff --name-only origin/main...HEAD | grep -q '^db/versions/'; then
+            echo "migrations_found=true" >> $GITHUB_ENV
+          else
+            echo "migrations_found=false" >> $GITHUB_ENV
+          fi
+
+      - name: Post comment on PR
+        if: env.migrations_found == 'true'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GH_TOKEN}}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'DB migrations detected. Please review the [Zero-Downtime Schema Migrations guide](https://www.notion.so/godialogue/Zero-Downtime-Schema-Migrations-with-PostgreSQL-c20da1b2c3e54b8f8f9d5340167d16e3?pvs=4).'
+            });
